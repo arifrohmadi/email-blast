@@ -4,7 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blast Email</title>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
 <style>
+  /* Quill overrides */
+  .ql-toolbar.ql-snow { border: 1px solid var(--border); border-bottom: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0; background: var(--surface2); padding: 6px 8px; flex-wrap: wrap; }
+  .ql-container.ql-snow { border: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+  .ql-editor { min-height: 220px; line-height: 1.7; }
+  .ql-editor.ql-blank::before { color: var(--text3); font-style: normal; }
+  .ql-snow .ql-picker { color: var(--text); }
+  .ql-snow .ql-stroke { stroke: var(--text2); }
+  .ql-snow .ql-fill { fill: var(--text2); }
+  .ql-snow button:hover .ql-stroke, .ql-snow .ql-picker-label:hover .ql-stroke { stroke: var(--text); }
+  .ql-snow button:hover .ql-fill { fill: var(--text); }
+  /* Mode switch buttons */
+  .mode-btn { padding: 7px 14px; font-size: 13px; font-family: inherit; border: none; background: none; cursor: pointer; color: var(--text2); transition: all .15s; border-right: 1px solid var(--border); }
+  .mode-btn:last-child { border-right: none; }
+  .mode-btn:hover { background: var(--surface2); color: var(--text); }
+  .mode-btn.active { background: var(--accent); color: #fff; }
+  .editor-wrap { border-radius: var(--radius-sm); overflow: hidden; }
   :root {
     --bg: #f5f5f0;
     --surface: #ffffff;
@@ -284,33 +301,51 @@
 
     <div class="card">
       <div class="card-title">✉️ Isi Email</div>
+
+      <!-- Subject -->
       <div class="form-group">
         <label>Subject Email</label>
         <input type="text" id="email-subject" placeholder="Halo {{nama}}, ada penawaran spesial untuk Anda!">
       </div>
-      <div class="form-group">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-          <label style="margin:0">Isi Email</label>
-          <div class="checkbox-row">
-            <input type="checkbox" id="is-html" onchange="toggleHtmlMode()">
-            <label for="is-html" style="font-size:12px">Mode HTML</label>
-          </div>
-        </div>
-        <textarea id="email-body" placeholder="Halo {{nama}},&#10;&#10;Terima kasih telah bergabung bersama kami.&#10;&#10;Kami ingin memberikan penawaran eksklusif untuk Anda.&#10;&#10;Salam hangat,&#10;Tim Kami"></textarea>
-        <div class="var-hint">
-          Klik untuk sisipkan variabel:
-          <span class="var-chip" onclick="insertVar('{{nama}}')">{{nama}}</span>
-          <span class="var-chip" onclick="insertVar('{{email}}')">{{email}}</span>
-          <span class="var-chip" onclick="insertVar('{{nomor}}')">{{nomor}}</span>
-        </div>
+
+      <!-- Mode Switch -->
+      <div style="display:flex;align-items:center;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--radius-sm);width:fit-content;overflow:hidden">
+        <button id="btn-mode-visual" class="mode-btn active" onclick="setEditorMode('visual')">🎨 Visual Editor</button>
+        <button id="btn-mode-html"   class="mode-btn"        onclick="setEditorMode('html')">💻 HTML</button>
+        <button id="btn-mode-plain"  class="mode-btn"        onclick="setEditorMode('plain')">📝 Teks Biasa</button>
+      </div>
+
+      <!-- Variabel chips -->
+      <div class="var-hint" style="margin-bottom:10px">
+        Klik untuk sisipkan variabel:
+        <span class="var-chip" onclick="insertVarActive('{{nama}}')">{{nama}}</span>
+        <span class="var-chip" onclick="insertVarActive('{{email}}')">{{email}}</span>
+        <span class="var-chip" onclick="insertVarActive('{{nomor}}')">{{nomor}}</span>
+      </div>
+
+      <!-- VISUAL: Quill editor -->
+      <div id="editor-visual" class="editor-wrap">
+        <div id="quill-editor" style="min-height:220px;font-size:14px;"></div>
+      </div>
+
+      <!-- HTML: textarea raw -->
+      <div id="editor-html" style="display:none">
+        <textarea id="email-body-html" style="font-family:monospace;font-size:13px;min-height:220px;background:#1e1e1e;color:#d4d4d4;border-radius:var(--radius-sm);border:1px solid var(--border);padding:12px;line-height:1.6" placeholder="<p>Halo <b>{{nama}}</b>,</p>&#10;<p>Terima kasih telah bergabung.</p>"></textarea>
+      </div>
+
+      <!-- PLAIN: textarea biasa -->
+      <div id="editor-plain" style="display:none">
+        <textarea id="email-body-plain" style="min-height:220px;line-height:1.7" placeholder="Halo {{nama}},&#10;&#10;Terima kasih telah bergabung bersama kami.&#10;&#10;Salam hangat,&#10;Tim Kami"></textarea>
       </div>
     </div>
 
+    <!-- Preview -->
     <div class="card">
       <div class="card-title">👁 Preview Email</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Ditampilkan berdasarkan kontak pertama yang valid</div>
-      <div id="preview-subj" style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text2)">Subject: —</div>
-      <div class="preview-box" id="preview-body">— Belum ada konten —</div>
+      <div id="preview-subj" style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2);padding-bottom:10px;border-bottom:1px solid var(--border)">Subject: —</div>
+      <!-- iframe untuk render HTML preview -->
+      <iframe id="preview-frame" style="width:100%;min-height:240px;border:1px solid var(--border);border-radius:var(--radius-sm);background:#fff" frameborder="0"></iframe>
       <div class="btn-row right"><button class="btn btn-sm" onclick="refreshPreview()">↻ Refresh Preview</button></div>
     </div>
   </div>
@@ -413,7 +448,7 @@ function showPanel(name) {
   const items = document.querySelectorAll('.nav-item');
   const order = ['import','smtp','compose','send','log'];
   items[order.indexOf(name)].classList.add('active');
-  if (name === 'compose') refreshPreview();
+  if (name === 'compose') { refreshPreview(); if (typeof Quill !== 'undefined') initQuill(); }
   if (name === 'log') loadLog();
 }
 
@@ -548,16 +583,102 @@ async function testSMTP() {
 
 function saveSMTP() { showAlert('smtp-alert', 'ok', 'Pengaturan disimpan (sesi ini)'); }
 
-// ─── Compose & Preview ───────────────────────────────────────────────
-function toggleHtmlMode() {
-  const isHtml = document.getElementById('is-html').checked;
-  document.getElementById('email-body').placeholder = isHtml
-    ? '<p>Halo <b>{{nama}}</b>,</p>\n<p>Terima kasih...</p>'
-    : 'Halo {{nama}},\n\nTerima kasih...';
+// ─── Compose & Editor ────────────────────────────────────────────────
+let quill = null;
+let editorMode = 'visual'; // 'visual' | 'html' | 'plain'
+
+function initQuill() {
+  if (quill) return;
+  quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Tulis isi email di sini... Gunakan toolbar untuk format teks.',
+    modules: {
+      toolbar: [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ color: [] }, { background: [] }],
+        [{ align: [] }],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        ['blockquote', 'code-block'],
+        ['link', 'image'],
+        ['clean']
+      ]
+    }
+  });
 }
 
-function insertVar(v) {
-  const ta = document.getElementById('email-body');
+function setEditorMode(mode) {
+  // Sinkronisasi konten sebelum ganti mode
+  const prev = editorMode;
+  const prevContent = getBodyContent();
+
+  editorMode = mode;
+
+  // Update tombol aktif
+  ['visual','html','plain'].forEach(m => {
+    document.getElementById('btn-mode-' + m).classList.toggle('active', m === mode);
+  });
+
+  // Sembunyikan semua editor
+  document.getElementById('editor-visual').style.display = 'none';
+  document.getElementById('editor-html').style.display   = 'none';
+  document.getElementById('editor-plain').style.display  = 'none';
+
+  if (mode === 'visual') {
+    document.getElementById('editor-visual').style.display = 'block';
+    initQuill();
+    // Isi konten dari mode sebelumnya
+    if (prev === 'html') {
+      quill.clipboard.dangerouslyPasteHTML(prevContent || '');
+    } else if (prev === 'plain') {
+      quill.setText(prevContent || '');
+    }
+  } else if (mode === 'html') {
+    document.getElementById('editor-html').style.display = 'block';
+    if (prev === 'visual' && quill) {
+      document.getElementById('email-body-html').value = quill.getSemanticHTML();
+    } else if (prev === 'plain') {
+      const plain = document.getElementById('email-body-plain').value;
+      document.getElementById('email-body-html').value = plain.split('\n').map(l => `<p>${l||'<br>'}</p>`).join('');
+    }
+  } else {
+    document.getElementById('editor-plain').style.display = 'block';
+    if (prev === 'visual' && quill) {
+      document.getElementById('email-body-plain').value = quill.getText().trimEnd();
+    } else if (prev === 'html') {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = prevContent;
+      document.getElementById('email-body-plain').value = tmp.innerText;
+    }
+  }
+  refreshPreview();
+}
+
+function getBodyContent() {
+  if (editorMode === 'visual') return quill ? quill.getSemanticHTML() : '';
+  if (editorMode === 'html')   return document.getElementById('email-body-html').value;
+  return document.getElementById('email-body-plain').value;
+}
+
+function isHtmlMode() {
+  return editorMode === 'visual' || editorMode === 'html';
+}
+
+function insertVarActive(v) {
+  if (editorMode === 'visual') {
+    if (!quill) return;
+    const range = quill.getSelection(true);
+    quill.insertText(range ? range.index : quill.getLength(), v);
+  } else if (editorMode === 'html') {
+    const ta = document.getElementById('email-body-html');
+    insertAtCursor(ta, v);
+  } else {
+    const ta = document.getElementById('email-body-plain');
+    insertAtCursor(ta, v);
+  }
+}
+
+function insertAtCursor(ta, v) {
   const s = ta.selectionStart, e = ta.selectionEnd;
   ta.value = ta.value.slice(0, s) + v + ta.value.slice(e);
   ta.selectionStart = ta.selectionEnd = s + v.length;
@@ -573,22 +694,28 @@ function applyVars(tpl, c) {
 
 function refreshPreview() {
   const subj = document.getElementById('email-subject').value;
-  const body = document.getElementById('email-body').value;
+  const body = getBodyContent();
   const c = contacts.find(x => x.valid);
-  if (!c || (!subj && !body)) {
-    document.getElementById('preview-subj').textContent = 'Subject: —';
-    document.getElementById('preview-body').textContent = '— Belum ada kontak valid atau isi email —';
+  document.getElementById('preview-subj').textContent = 'Subject: ' + (c ? applyVars(subj, c) : subj || '—');
+  const frame = document.getElementById('preview-frame');
+  if (!c || !body) {
+    frame.srcdoc = '<p style="color:#999;font-family:sans-serif;padding:16px">— Belum ada kontak valid atau isi email —</p>';
     return;
   }
-  document.getElementById('preview-subj').textContent = 'Subject: ' + applyVars(subj, c);
-  document.getElementById('preview-body').textContent = applyVars(body, c);
+  const renderedBody = applyVars(body, c);
+  if (isHtmlMode()) {
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:'Segoe UI',sans-serif;font-size:14px;line-height:1.7;padding:16px 20px;color:#1a1a18}a{color:#1d5fa8}img{max-width:100%}</style></head><body>${renderedBody}</body></html>`;
+  } else {
+    const escaped = renderedBody.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    frame.srcdoc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:'Segoe UI',sans-serif;font-size:14px;line-height:1.7;padding:16px 20px;color:#1a1a18;white-space:pre-wrap}</style></head><body>${escaped}</body></html>`;
+  }
 }
 
 // ─── Send ────────────────────────────────────────────────────────────
 async function doSend() {
   if (sending) return;
   const subj = document.getElementById('email-subject').value.trim();
-  const body = document.getElementById('email-body').value.trim();
+  const body = getBodyContent().trim();
   const smtp = getSMTP();
   const dryRun = document.getElementById('dry-run').checked;
 
@@ -610,7 +737,7 @@ async function doSend() {
   document.getElementById('p-pct').textContent = '0%';
   document.getElementById('live-log').innerHTML = '';
 
-  const payload = { ...smtp, subject: subj, body, isHtml: document.getElementById('is-html').checked, delay, dryRun };
+  const payload = { ...smtp, subject: subj, body, isHtml: isHtmlMode(), delay, dryRun };
 
   const resp = await fetch('/api/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
   const reader = resp.body.getReader();
@@ -717,6 +844,15 @@ document.getElementById('modal-overlay').addEventListener('click', function(e) {
 
 // Load contacts on start
 fetch('/api/contacts').then(r=>r.json()).then(d=>{contacts=d;renderContacts();});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script>
+// Init Quill after library loads
+window.addEventListener('load', () => {
+  if (document.getElementById('panel-compose').classList.contains('active')) {
+    initQuill();
+  }
+});
 </script>
 </body>
 </html>
