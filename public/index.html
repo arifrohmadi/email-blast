@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blast Email</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e0dfd8;
+    --border2: #c8c7be;
+    --text: #1a1a18;
+    --text2: #5a5a54;
+    --text3: #9a9a92;
+    --accent: #1a1a18;
+    --green: #2d7a3a;
+    --green-bg: #edf7ee;
+    --red: #c0392b;
+    --red-bg: #fdf0ef;
+    --amber: #b45309;
+    --amber-bg: #fef3e2;
+    --blue: #1d5fa8;
+    --blue-bg: #e8f0fb;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-logo { padding: 20px 18px 14px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+  .sidebar-logo span { font-size: 11px; color: var(--text3); display: block; margin-top: 2px; }
+  nav { flex: 1; padding: 10px 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; border-left: 3px solid transparent; color: var(--text2); font-size: 14px; transition: all .15s; user-select: none; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { border-left-color: var(--accent); background: var(--surface2); color: var(--text); font-weight: 500; }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+  .content { flex: 1; overflow-y: auto; }
+  .panel { display: none; padding: 28px 32px; max-width: 860px; }
+  .panel.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: var(--text2); font-size: 14px; margin-bottom: 24px; }
+
+  /* Form */
+  .form-group { margin-bottom: 14px; }
+  .form-group:last-child { margin-bottom: 0; }
+  label { font-size: 12px; font-weight: 500; color: var(--text2); display: block; margin-bottom: 5px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 14px; font-family: inherit; color: var(--text); background: var(--surface);
+    transition: border-color .15s; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.6; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; }
+  .checkbox-row input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+  .checkbox-row label { margin: 0; font-size: 14px; color: var(--text); font-weight: 400; cursor: pointer; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; background: var(--surface); color: var(--text); font-family: inherit; transition: all .15s; }
+  .btn:hover { background: var(--surface2); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { opacity: .85; background: var(--accent); }
+  .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+  .btn-green:hover { opacity: .85; background: var(--green); }
+  .btn-red { background: var(--red-bg); color: var(--red); border-color: #f5c6c2; }
+  .btn-red:hover { background: #fbe0de; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-row.right { justify-content: flex-end; }
+  .btn-row.between { justify-content: space-between; }
+
+  /* Drop zone */
+  .drop-zone { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 36px; text-align: center; cursor: pointer; transition: all .2s; color: var(--text2); }
+  .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: var(--surface2); }
+  .drop-zone svg { width: 40px; height: 40px; margin: 0 auto 10px; display: block; opacity: .5; }
+  .drop-zone p { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .drop-zone small { font-size: 12px; color: var(--text3); }
+  #file-input { display: none; }
+
+  /* Stats */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 18px; }
+  .stat-card { flex: 1; background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .stat-val { font-size: 26px; font-weight: 700; }
+  .stat-lbl { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .stat-green .stat-val { color: var(--green); }
+  .stat-red .stat-val { color: var(--red); }
+  .stat-blue .stat-val { color: var(--blue); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--surface2); padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text2); font-size: 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf7; }
+  .td-input { border: none; background: none; padding: 0; font-size: 13px; width: 100%; outline: none; font-family: inherit; color: var(--text); }
+  .td-input:focus { background: var(--surface2); padding: 3px 6px; border-radius: 4px; }
+
+  /* Badge */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red { background: var(--red-bg); color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+  .badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+  /* Progress */
+  .progress-bar { height: 10px; background: var(--surface2); border-radius: 5px; overflow: hidden; margin: 10px 0; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 5px; transition: width .4s; }
+  .progress-fill.green { background: var(--green); }
+
+  /* Log */
+  .log-box { background: #1a1a18; border-radius: var(--radius-sm); padding: 14px; max-height: 300px; overflow-y: auto; font-size: 12px; font-family: 'Consolas', 'Courier New', monospace; }
+  .log-line { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid #2a2a28; }
+  .log-line:last-child { border: none; }
+  .log-time { color: #888; min-width: 72px; }
+  .log-ok { color: #4ade80; }
+  .log-fail { color: #f87171; }
+  .log-info { color: #94a3b8; }
+  .log-name { color: #e2e8f0; }
+
+  /* Alert */
+  .alert { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px; display: none; }
+  .alert.show { display: flex; align-items: center; gap: 8px; }
+  .alert-ok { background: var(--green-bg); color: var(--green); border: 1px solid #b7e4be; }
+  .alert-err { background: var(--red-bg); color: var(--red); border: 1px solid #f5c6c2; }
+  .alert-info { background: var(--blue-bg); color: var(--blue); border: 1px solid #b3d0f5; }
+
+  /* Var chips */
+  .var-chip { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; font-family: monospace; font-size: 11px; margin: 2px; color: var(--text2); cursor: pointer; }
+  .var-chip:hover { background: var(--border); }
+  .var-hint { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+  /* Preview */
+  .preview-box { background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 14px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; max-height: 220px; overflow-y: auto; color: var(--text); }
+  .empty-state { text-align: center; padding: 40px; color: var(--text3); }
+
+  /* Send status */
+  .send-status { font-size: 13px; color: var(--text2); margin-top: 8px; min-height: 20px; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1>📧 Blast Email</h1>
+    <span>Email Marketing Tool</span>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="showPanel('import')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Import Kontak
+    </div>
+    <div class="nav-item" onclick="showPanel('smtp')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      Pengaturan SMTP
+    </div>
+    <div class="nav-item" onclick="showPanel('compose')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Buat Email
+    </div>
+    <div class="nav-item" onclick="showPanel('send')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Kirim
+    </div>
+    <div class="nav-item" onclick="showPanel('log')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Log Pengiriman
+    </div>
+  </nav>
+  <div class="sidebar-footer">v1.0.0 · Node.js + Nodemailer</div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="content">
+
+  <!-- ─── PANEL: IMPORT ─── -->
+  <div id="panel-import" class="panel active">
+    <h2 class="page-title">Import Kontak</h2>
+    <p class="page-sub">Upload file CSV dengan kolom: #, Nama Lengkap, Email</p>
+
+    <div class="card">
+      <div class="drop-zone" id="drop-zone"
+        onclick="document.getElementById('file-input').click()"
+        ondragover="dzEv(event,'drag')" ondragleave="dzEv(event,'')" ondrop="dzDrop(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3-3 3 3"/></svg>
+        <p>Klik atau seret file CSV ke sini</p>
+        <small>Format: #, Nama Lengkap, Email</small>
+      </div>
+      <input type="file" id="file-input" accept=".csv" onchange="uploadCSV(this.files[0])">
+    </div>
+
+    <div id="import-alert" class="alert"></div>
+
+    <div id="contacts-section" style="display:none">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total kontak</div></div>
+        <div class="stat-card stat-green"><div class="stat-val" id="s-valid">0</div><div class="stat-lbl">Email valid</div></div>
+        <div class="stat-card stat-red"><div class="stat-val" id="s-inv">0</div><div class="stat-lbl">Email tidak valid</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Nama Lengkap</th><th>Email</th><th>Status</th><th style="width:60px"></th></tr>
+          </thead>
+          <tbody id="contacts-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="btn-row between" style="margin-top:12px">
+        <button class="btn btn-red btn-sm" onclick="clearAll()">🗑 Hapus semua kontak</button>
+        <button class="btn btn-sm" onclick="openAddModal()">+ Tambah manual</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── PANEL: SMTP ─── -->
+  <div id="panel-smtp" class="panel">
+    <h2 class="page-title">Pengaturan SMTP</h2>
+    <p class="page-sub">Konfigurasi server email untuk pengiriman</p>
+
+    <div class="card">
+      <div class="card-title">⚙️ Konfigurasi Server</div>
+      <div class="row2 form-group">
+        <div><label>Host SMTP</label><input type="text" id="smtp-host" placeholder="smtp.gmail.com" value="smtp.gmail.com"></div>
+        <div><label>Port</label><input type="number" id="smtp-port" placeholder="587" value="587"></div>
+      </div>
+      <div class="row2 form-group">
+        <div><label>Username / Email Pengirim</label><input type="email" id="smtp-user" placeholder="emailanda@gmail.com"></div>
+        <div><label>Password / App Password</label><input type="password" id="smtp-pass" placeholder="••••••••••••"></div>
+      </div>
+      <div class="form-group row2">
+        <div><label>Nama Pengirim</label><input type="text" id="sender-name" placeholder="Tim Marketing"></div>
+        <div style="padding-top:22px"><div class="checkbox-row"><input type="checkbox" id="smtp-secure"><label for="smtp-secure">Gunakan SSL (port 465)</label></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 Panduan Gmail</div>
+      <ul style="color:var(--text2);font-size:13px;line-height:2;padding-left:18px">
+        <li>Aktifkan <b>2-Factor Authentication</b> di akun Google Anda</li>
+        <li>Buat <b>App Password</b> di: Google Account → Security → App Passwords</li>
+        <li>Gunakan App Password (16 karakter) sebagai password di atas</li>
+        <li>Host: <code>smtp.gmail.com</code> · Port: <code>587</code> (TLS) atau <code>465</code> (SSL)</li>
+      </ul>
+    </div>
+
+    <div id="smtp-alert" class="alert"></div>
+
+    <div class="btn-row right">
+      <button class="btn btn-green" onclick="testSMTP()">🔌 Test Koneksi SMTP</button>
+      <button class="btn btn-primary" onclick="saveSMTP()">💾 Simpan Pengaturan</button>
+    </div>
+  </div>
+
+  <!-- ─── PANEL: COMPOSE ─── -->
+  <div id="panel-compose" class="panel">
+    <h2 class="page-title">Buat Email</h2>
+    <p class="page-sub">Tulis template email yang akan dikirim ke semua kontak</p>
+
+    <div class="card">
+      <div class="card-title">✉️ Isi Email</div>
+      <div class="form-group">
+        <label>Subject Email</label>
+        <input type="text" id="email-subject" placeholder="Halo {{nama}}, ada penawaran spesial untuk Anda!">
+      </div>
+      <div class="form-group">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+          <label style="margin:0">Isi Email</label>
+          <div class="checkbox-row">
+            <input type="checkbox" id="is-html" onchange="toggleHtmlMode()">
+            <label for="is-html" style="font-size:12px">Mode HTML</label>
+          </div>
+        </div>
+        <textarea id="email-body" placeholder="Halo {{nama}},&#10;&#10;Terima kasih telah bergabung bersama kami.&#10;&#10;Kami ingin memberikan penawaran eksklusif untuk Anda.&#10;&#10;Salam hangat,&#10;Tim Kami"></textarea>
+        <div class="var-hint">
+          Klik untuk sisipkan variabel:
+          <span class="var-chip" onclick="insertVar('{{nama}}')">{{nama}}</span>
+          <span class="var-chip" onclick="insertVar('{{email}}')">{{email}}</span>
+          <span class="var-chip" onclick="insertVar('{{nomor}}')">{{nomor}}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👁 Preview Email</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Ditampilkan berdasarkan kontak pertama yang valid</div>
+      <div id="preview-subj" style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text2)">Subject: —</div>
+      <div class="preview-box" id="preview-body">— Belum ada konten —</div>
+      <div class="btn-row right"><button class="btn btn-sm" onclick="refreshPreview()">↻ Refresh Preview</button></div>
+    </div>
+  </div>
+
+  <!-- ─── PANEL: SEND ─── -->
+  <div id="panel-send" class="panel">
+    <h2 class="page-title">Kirim Email</h2>
+    <p class="page-sub">Mulai proses blast email ke semua kontak yang valid</p>
+
+    <div class="card">
+      <div class="card-title">⚙️ Pengaturan Pengiriman</div>
+      <div class="row3 form-group">
+        <div><label>Delay antar email (detik)</label><input type="number" id="send-delay" value="3" min="0" max="60"></div>
+        <div><label>Maks. email per sesi</label><input type="number" id="max-send" value="0" min="0" placeholder="0 = semua"></div>
+        <div style="padding-top:22px"><div class="checkbox-row"><input type="checkbox" id="dry-run"><label for="dry-run">Mode dry run (simulasi)</label></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 Status Pengiriman</div>
+      <div class="stats-row">
+        <div class="stat-card stat-blue"><div class="stat-val" id="p-total">0</div><div class="stat-lbl">Total target</div></div>
+        <div class="stat-card stat-green"><div class="stat-val" id="p-sent">0</div><div class="stat-lbl">Terkirim</div></div>
+        <div class="stat-card stat-red"><div class="stat-val" id="p-fail">0</div><div class="stat-lbl">Gagal</div></div>
+        <div class="stat-card"><div class="stat-val" id="p-pct">0%</div><div class="stat-lbl">Progress</div></div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill green" id="prog-bar" style="width:0%"></div></div>
+      <div class="send-status" id="send-status">Siap untuk mengirim</div>
+      <div class="btn-row right" style="margin-top:14px">
+        <button class="btn btn-red btn-sm" id="stop-btn" onclick="doStop()" disabled>⏹ Stop</button>
+        <button class="btn btn-primary" id="send-btn" onclick="doSend()">▶ Mulai Kirim</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 Live Log</div>
+      <div class="log-box" id="live-log"><div class="log-line"><span class="log-info">— Menunggu pengiriman dimulai —</span></div></div>
+    </div>
+  </div>
+
+  <!-- ─── PANEL: LOG ─── -->
+  <div id="panel-log" class="panel">
+    <h2 class="page-title">Log Pengiriman</h2>
+    <p class="page-sub">Rekap semua aktivitas pengiriman email</p>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="l-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-card stat-green"><div class="stat-val" id="l-ok">0</div><div class="stat-lbl">Berhasil</div></div>
+      <div class="stat-card stat-red"><div class="stat-val" id="l-err">0</div><div class="stat-lbl">Gagal</div></div>
+    </div>
+
+    <div id="log-alert" class="alert"></div>
+
+    <div class="card" style="padding:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <span style="font-weight:600;font-size:14px">Riwayat Pengiriman</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-red" onclick="clearLog()">🗑 Hapus Log</button>
+          <button class="btn btn-sm btn-green" onclick="exportLog()">⬇ Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="border:none;border-radius:0">
+        <table>
+          <thead><tr><th>Waktu</th><th>#</th><th>Nama</th><th>Email</th><th>Status</th><th>Keterangan</th></tr></thead>
+          <tbody id="log-tbody"><tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Belum ada log</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- MODAL: Tambah Kontak Manual -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:24px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <h3 style="font-size:16px;margin-bottom:16px">Tambah Kontak Manual</h3>
+    <div class="form-group"><label>Nama Lengkap</label><input type="text" id="m-nama" placeholder="Nama kontak"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="m-email" placeholder="email@contoh.com"></div>
+    <div id="modal-alert" class="alert"></div>
+    <div class="btn-row right">
+      <button class="btn" onclick="closeModal()">Batal</button>
+      <button class="btn btn-primary" onclick="addManual()">Tambah</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────
+let contacts = [];
+let logs = [];
+let sending = false;
+let currentBodyEl = null;
+
+// ─── Navigation ─────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const items = document.querySelectorAll('.nav-item');
+  const order = ['import','smtp','compose','send','log'];
+  items[order.indexOf(name)].classList.add('active');
+  if (name === 'compose') refreshPreview();
+  if (name === 'log') loadLog();
+}
+
+// ─── Alert helper ───────────────────────────────────────────────────
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'alert show alert-' + type;
+  el.innerHTML = (type==='ok'?'✅':type==='err'?'❌':'ℹ️') + ' ' + msg;
+  if (type !== 'err') setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+// ─── Drop zone ──────────────────────────────────────────────────────
+function dzEv(e, cls) {
+  e.preventDefault();
+  document.getElementById('drop-zone').className = 'drop-zone' + (cls ? ' ' + cls : '');
+}
+function dzDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').className = 'drop-zone';
+  const f = e.dataTransfer.files[0];
+  if (f) uploadCSV(f);
+}
+
+// ─── Upload CSV ──────────────────────────────────────────────────────
+async function uploadCSV(file) {
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('csv', file);
+  try {
+    const r = await fetch('/api/import-csv', { method: 'POST', body: fd });
+    const d = await r.json();
+    if (!r.ok) { showAlert('import-alert', 'err', d.error); return; }
+    contacts = d.contacts;
+    renderContacts();
+    showAlert('import-alert', 'ok', `${d.imported} kontak berhasil diimport`);
+  } catch(e) {
+    showAlert('import-alert', 'err', 'Gagal upload: ' + e.message);
+  }
+}
+
+// ─── Render contacts table ───────────────────────────────────────────
+function renderContacts() {
+  const valid = contacts.filter(c => c.valid).length;
+  document.getElementById('s-total').textContent = contacts.length;
+  document.getElementById('s-valid').textContent = valid;
+  document.getElementById('s-inv').textContent = contacts.length - valid;
+  document.getElementById('contacts-section').style.display = contacts.length ? 'block' : 'none';
+
+  const tbody = document.getElementById('contacts-tbody');
+  tbody.innerHTML = '';
+  contacts.forEach(c => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text3);width:40px">${c.nomor}</td>
+      <td><input class="td-input" type="text" value="${esc(c.nama)}" onchange="updateContact(${c.id},'nama',this.value)"></td>
+      <td><input class="td-input" type="email" value="${esc(c.email)}" onchange="updateContact(${c.id},'email',this.value)"></td>
+      <td><span class="badge ${c.valid ? 'badge-green' : 'badge-red'}">${c.valid ? '✓ Valid' : '✗ Invalid'}</span></td>
+      <td><button class="btn btn-sm btn-red" onclick="deleteContact(${c.id})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function updateContact(id, field, val) {
+  const c = contacts.find(x => x.id === id);
+  if (!c) return;
+  c[field] = val;
+  if (field === 'email') c.valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  await fetch(`/api/contacts/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(c) });
+  renderContacts();
+}
+
+async function deleteContact(id) {
+  await fetch(`/api/contacts/${id}`, { method: 'DELETE' });
+  contacts = contacts.filter(c => c.id !== id);
+  renderContacts();
+}
+
+async function clearAll() {
+  if (!confirm('Hapus semua kontak?')) return;
+  await fetch('/api/contacts', { method: 'DELETE' });
+  contacts = [];
+  renderContacts();
+}
+
+// ─── Modal: Tambah Manual ────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('modal-overlay').style.display = 'flex';
+  document.getElementById('m-nama').value = '';
+  document.getElementById('m-email').value = '';
+  document.getElementById('modal-alert').classList.remove('show');
+  setTimeout(() => document.getElementById('m-nama').focus(), 100);
+}
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+async function addManual() {
+  const nama = document.getElementById('m-nama').value.trim();
+  const email = document.getElementById('m-email').value.trim();
+  if (!email) { showAlert('modal-alert', 'err', 'Email wajib diisi'); return; }
+  const r = await fetch('/api/contacts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nama, email}) });
+  const c = await r.json();
+  if (!r.ok) { showAlert('modal-alert', 'err', c.error); return; }
+  contacts.push(c);
+  renderContacts();
+  closeModal();
+}
+
+// ─── SMTP ───────────────────────────────────────────────────────────
+function getSMTP() {
+  return {
+    host: document.getElementById('smtp-host').value.trim(),
+    port: parseInt(document.getElementById('smtp-port').value) || 587,
+    user: document.getElementById('smtp-user').value.trim(),
+    pass: document.getElementById('smtp-pass').value,
+    secure: document.getElementById('smtp-secure').checked,
+    senderName: document.getElementById('sender-name').value.trim(),
+  };
+}
+
+async function testSMTP() {
+  const cfg = getSMTP();
+  if (!cfg.host || !cfg.user || !cfg.pass) { showAlert('smtp-alert', 'err', 'Isi Host, Username, dan Password terlebih dahulu'); return; }
+  showAlert('smtp-alert', 'info', 'Mencoba koneksi...');
+  try {
+    const r = await fetch('/api/test-smtp', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cfg) });
+    const d = await r.json();
+    showAlert('smtp-alert', d.success ? 'ok' : 'err', d.message);
+  } catch(e) {
+    showAlert('smtp-alert', 'err', 'Error: ' + e.message);
+  }
+}
+
+function saveSMTP() { showAlert('smtp-alert', 'ok', 'Pengaturan disimpan (sesi ini)'); }
+
+// ─── Compose & Preview ───────────────────────────────────────────────
+function toggleHtmlMode() {
+  const isHtml = document.getElementById('is-html').checked;
+  document.getElementById('email-body').placeholder = isHtml
+    ? '<p>Halo <b>{{nama}}</b>,</p>\n<p>Terima kasih...</p>'
+    : 'Halo {{nama}},\n\nTerima kasih...';
+}
+
+function insertVar(v) {
+  const ta = document.getElementById('email-body');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + v + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + v.length;
+  ta.focus();
+}
+
+function applyVars(tpl, c) {
+  return tpl
+    .replace(/\{\{nama\}\}/gi, c.nama || '')
+    .replace(/\{\{email\}\}/gi, c.email || '')
+    .replace(/\{\{nomor\}\}/gi, c.nomor || '');
+}
+
+function refreshPreview() {
+  const subj = document.getElementById('email-subject').value;
+  const body = document.getElementById('email-body').value;
+  const c = contacts.find(x => x.valid);
+  if (!c || (!subj && !body)) {
+    document.getElementById('preview-subj').textContent = 'Subject: —';
+    document.getElementById('preview-body').textContent = '— Belum ada kontak valid atau isi email —';
+    return;
+  }
+  document.getElementById('preview-subj').textContent = 'Subject: ' + applyVars(subj, c);
+  document.getElementById('preview-body').textContent = applyVars(body, c);
+}
+
+// ─── Send ────────────────────────────────────────────────────────────
+async function doSend() {
+  if (sending) return;
+  const subj = document.getElementById('email-subject').value.trim();
+  const body = document.getElementById('email-body').value.trim();
+  const smtp = getSMTP();
+  const dryRun = document.getElementById('dry-run').checked;
+
+  if (!subj || !body) { alert('Subject dan isi email wajib diisi di menu "Buat Email"'); return; }
+  if (!dryRun && (!smtp.host || !smtp.user || !smtp.pass)) { alert('Konfigurasi SMTP belum diisi. Isi di menu "Pengaturan SMTP" atau aktifkan Dry Run.'); return; }
+
+  const valids = contacts.filter(c => c.valid);
+  if (!valids.length) { alert('Tidak ada kontak dengan email valid. Import kontak terlebih dahulu.'); return; }
+
+  const maxSend = parseInt(document.getElementById('max-send').value) || 0;
+  const delay = parseInt(document.getElementById('send-delay').value) || 2;
+
+  sending = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('stop-btn').disabled = false;
+  document.getElementById('p-total').textContent = maxSend > 0 ? Math.min(maxSend, valids.length) : valids.length;
+  document.getElementById('p-sent').textContent = '0';
+  document.getElementById('p-fail').textContent = '0';
+  document.getElementById('p-pct').textContent = '0%';
+  document.getElementById('live-log').innerHTML = '';
+
+  const payload = { ...smtp, subject: subj, body, isHtml: document.getElementById('is-html').checked, delay, dryRun };
+
+  const resp = await fetch('/api/send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split('\n\n');
+    buf = parts.pop();
+    for (const part of parts) {
+      if (!part.startsWith('data:')) continue;
+      try {
+        const d = JSON.parse(part.slice(5).trim());
+        handleSendEvent(d);
+      } catch {}
+    }
+  }
+
+  sending = false;
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+}
+
+function handleSendEvent(d) {
+  if (d.type === 'progress') {
+    document.getElementById('p-sent').textContent = d.sent;
+    document.getElementById('p-fail').textContent = d.failed;
+    document.getElementById('p-pct').textContent = d.pct + '%';
+    document.getElementById('prog-bar').style.width = d.pct + '%';
+    document.getElementById('send-status').textContent = `Mengirim ${d.index}/${d.total}: ${d.log.email}`;
+    addLiveLog(d.log);
+  } else if (d.type === 'done') {
+    document.getElementById('send-status').textContent = `✅ Selesai! Terkirim: ${d.sent}, Gagal: ${d.failed}`;
+    document.getElementById('prog-bar').style.width = '100%';
+  } else if (d.type === 'stopped') {
+    document.getElementById('send-status').textContent = `⏹ Dihentikan. Terkirim: ${d.sent}, Gagal: ${d.failed}`;
+  } else if (d.type === 'error') {
+    document.getElementById('send-status').textContent = '❌ Error: ' + d.message;
+  }
+}
+
+function addLiveLog(entry) {
+  const box = document.getElementById('live-log');
+  const div = document.createElement('div');
+  div.className = 'log-line';
+  div.innerHTML = `<span class="log-time">${entry.time}</span><span class="${entry.status==='ok'?'log-ok':'log-fail'}">${entry.status==='ok'?'OK ✓':'FAIL ✗'}</span><span class="log-name">${esc(entry.nama)}</span><span class="log-info">&lt;${esc(entry.email)}&gt;</span><span class="log-info">${esc(entry.note)}</span>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function doStop() {
+  await fetch('/api/stop', { method: 'POST' });
+}
+
+// ─── Log ─────────────────────────────────────────────────────────────
+async function loadLog() {
+  const r = await fetch('/api/log');
+  logs = await r.json();
+  renderLog();
+}
+
+function renderLog() {
+  const ok = logs.filter(l => l.status === 'ok').length;
+  const err = logs.filter(l => l.status === 'fail').length;
+  document.getElementById('l-total').textContent = logs.length;
+  document.getElementById('l-ok').textContent = ok;
+  document.getElementById('l-err').textContent = err;
+  const tbody = document.getElementById('log-tbody');
+  tbody.innerHTML = '';
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3)">Belum ada log</td></tr>';
+    return;
+  }
+  logs.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:var(--text3);font-size:12px">${l.time}</td><td>${l.nomor}</td><td>${esc(l.nama)}</td><td>${esc(l.email)}</td><td><span class="badge ${l.status==='ok'?'badge-green':'badge-red'}">${l.status==='ok'?'✓ Terkirim':'✗ Gagal'}</span></td><td style="color:var(--text2);font-size:12px">${esc(l.note)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function clearLog() {
+  if (!confirm('Hapus semua log?')) return;
+  await fetch('/api/log', { method: 'DELETE' });
+  logs = [];
+  renderLog();
+}
+
+function exportLog() {
+  window.location.href = '/api/log/export';
+}
+
+// ─── Util ─────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Load contacts on start
+fetch('/api/contacts').then(r=>r.json()).then(d=>{contacts=d;renderContacts();});
+</script>
+</body>
+</html>
